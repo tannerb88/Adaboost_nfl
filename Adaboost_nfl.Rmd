@@ -8,24 +8,88 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r}
+# We must first read in the data set to a date frame
+install.packages("readxl")
+# Installing package for adaboost algorithm
+install.packages("JOUSBoost")
+# Installing package to analyze the model
+install.packages("OneR")
+#Installing package for confusion matrix
+install.packages("caret")
+library(readxl)
+library(JOUSBoost)
+library(rpart)
+library(OneR)
+library(caret)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# Read in the data
+gb_data = read_excel("GB_Packers_Data.xlsx")
+# View data 
+summary(gb_data)
 
-```{r cars}
-summary(cars)
+# Create a training and testing data set
+sample <- sample.int(n = nrow(gb_data), size = floor(.75*nrow(gb_data)), replace = F)
+train <- gb_data[sample, ]
+test  <- gb_data[-sample, ]
+
+# Separate the training set outcomes into their own vector
+y_train <- train$Win 
+# Separate the training set features into their own matrix
+X_train <- data.matrix(train[ , 1:15])
+
+# Do the same for the Test set
+y_test <- test$Win 
+X_test <- data.matrix(test[ , 1:15])
+
+# Train adaboost algorithm on training set
+boost <- adaboost(X_train, y_train, tree_depth = maxdepth, n_rounds = T)
+print(boost)
+
+# Get predictions from test set
+pred <- predict(boost, X_test)
+# Compare predictions to actual outcomes
+eval_model(pred, y_test)
+
+confusionMatrix(factor(pred), factor(y_test))
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+```{r}
+# Attempt at creating Adaboost from scratch
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+# Need to Initialize the uniform distribution for the different samples
+Distribution <- rep(1/m, m)
+
+# These will be the weak learners
+H <- replicate(T, list())
+
+# This vector will store the total errors
+a <- vector(mode = "numeric", T)
+
+set.seed(123)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+for(t in 1:T) 
+  {
+    h[[t]] <- rpart(y ~., data = new_gb_data, 
+                    weight = Distribution, 
+                    maxdepth = maxdepth,
+                    method = "class")
+    h <- predict(H[[t]], X, type = "class")
+    
+    e <- sum((!h = y) * D)
+    
+    a[t] <- 0.5 * log((1 - e) / e)
+    
+    D <- D * exp(-a[t] * y * as.numeric())
+  
+  }
+
+
+```
 
 
